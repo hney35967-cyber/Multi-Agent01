@@ -2,15 +2,14 @@ import os
 from crewai import Agent, Crew, Process, Task
 from crewai.tools import tool
 from duckduckgo_search import DDGS
-from langchain_openai import ChatOpenAI
+from langchain_groq import ChatGroq
 
-# Set up your OpenAI API Key (or pass it via environment variables)
-# os.environ["OPENAI_API_KEY"] = "your-openai-api-key-here"
-
-# Initialize LLM Engine (Using GPT-4o-mini for speed & cost-efficiency)
-llm = ChatOpenAI(model_name="gpt-4o-mini", temperature=0.2)
-
-
+# Groq LLM Engine setup (Llama-3.3-70b-versatile fast aur smart hai)
+llm = ChatGroq(
+    temperature=0.2,
+    model_name="llama-3.3-70b-versatile",
+    groq_api_key=os.environ.get("GROQ_API_KEY")
+)
 # -------------------------------------------------------------------
 # Custom Search Tool
 # -------------------------------------------------------------------
