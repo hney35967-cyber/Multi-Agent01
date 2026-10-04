@@ -7,7 +7,7 @@ from crewai import LLM
 def get_groq_llm():
     api_key = os.environ.get("GROQ_API_KEY")
     return LLM(
-        model="llama-3.1-70b-versatile",
+        model="openai/gpt-oss-20b",
         api_key=api_key,
         temperature=0.2
     )
