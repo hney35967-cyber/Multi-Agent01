@@ -1,6 +1,6 @@
 streamlit>=1.30.0
-pydantic>=2.4.2
 crewai>=0.28.0
 duckduckgo-search>=4.0.0
 langchain-groq>=0.1.0
-langchain-core>=0.1.20
+pydantic>=2.4.2
+litellm>=1.30.0
