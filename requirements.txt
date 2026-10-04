@@ -1,0 +1,4 @@
+crewai>=0.28.0
+duckduckgo-search>=4.0.0
+langchain-openai>=0.0.5
+pydantic>=2.0.0
