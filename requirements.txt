@@ -1,6 +1,4 @@
 streamlit
 crewai
-pydantic>=2.4.2
 duckduckgo-search
-langchain-google-genai
-litellm
+pydantic>=2.4.2
