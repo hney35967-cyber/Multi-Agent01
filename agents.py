@@ -4,13 +4,11 @@ from crewai.tools import tool
 from duckduckgo_search import DDGS
 from crewai import LLM
 
-import os
-from crewai import LLM
 
 def get_groq_llm():
     api_key = os.environ.get("GROQ_API_KEY")
     return LLM(
-        model="groq/openai/gpt-oss-120b",  # <--- Exact Groq Model ID for GPT OSS 120B
+        model="groq/llama-3.3-70b-versatile",  # Clean, 100% stable Groq model
         api_key=api_key,
         temperature=0.2
     )
