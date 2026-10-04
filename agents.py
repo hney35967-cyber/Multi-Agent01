@@ -7,7 +7,7 @@ from crewai import LLM
 def get_groq_llm():
     api_key = os.environ.get("GROQ_API_KEY")
     return LLM(
-        model="groq/qwen/qwen3.8-27b",
+        model="canopylabs/orpheus-arabic-saudi",
         api_key=api_key,
         temperature=0.2
     )
