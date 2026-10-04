@@ -7,7 +7,7 @@ from crewai import LLM
 def get_groq_llm():
     api_key = os.environ.get("GROQ_API_KEY")
     return LLM(
-        model="groq/llama3-70b-8192",  # 'groq/' prefix zaroori hai
+        model="groq/llama-3.3-70b-versatile",  # <-- Active supported Groq model
         api_key=api_key,
         temperature=0.2
     )
