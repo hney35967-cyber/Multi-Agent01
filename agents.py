@@ -1,31 +1,23 @@
 import os
 from crewai import Agent, LLM
-from crewai_tools import SerperDevTool, DuckDuckGoSearchRun
+from langchain_community.tools import DuckDuckGoSearchRun
 
 def get_gemini_llm():
-    """
-    Initializes and returns the Google Gemini LLM instance via CrewAI / LiteLLM.
-    Retrieves GEMINI_API_KEY from environment variables or Streamlit secrets.
-    """
     api_key = os.environ.get("GEMINI_API_KEY")
     
     if not api_key:
         raise ValueError("GEMINI_API_KEY environment variable is missing. Please set it in Streamlit Secrets.")
 
     return LLM(
-        model="gemini/gemini-2.5-flash",  # Gemini's high-speed, stable production model
+        model="gemini/gemini-2.5-flash",
         api_key=api_key,
         temperature=0.2
     )
 
 def create_agents():
-    """
-    Creates and returns the three core agents for NexusFind AI initialized with Gemini LLM.
-    """
-    # Initialize Gemini LLM Engine
     gemini_llm = get_gemini_llm()
     
-    # Live Web Search Tool
+    # DuckDuckGo Search Tool
     search_tool = DuckDuckGoSearchRun()
 
     # 1. Search Planner Agent
