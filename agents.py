@@ -1,7 +1,7 @@
-
-
-# CrewAI Native LLM Setup for Groq
 import os
+from crewai import Agent, Crew, Process, Task, LLM
+from crewai.tools import tool
+from duckduckgo_search import DDGS
 from crewai import LLM
 
 def get_groq_llm():
