@@ -1,17 +1,16 @@
-import os
-from crewai import Agent, Crew, Process, Task, LLM
-from crewai.tools import tool
-from duckduckgo_search import DDGS
+
 
 # CrewAI Native LLM Setup for Groq
+import os
+from crewai import LLM
+
 def get_groq_llm():
     api_key = os.environ.get("GROQ_API_KEY")
     return LLM(
-        model="groq/llama-3.3-70b-versatile",
+        model="groq/llama-3.3-70b-versatile",  # 'groq/' prefix zaroori hai
         api_key=api_key,
         temperature=0.2
     )
-
 # -------------------------------------------------------------------
 # Custom Search Tool
 # -------------------------------------------------------------------
