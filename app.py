@@ -1,58 +1,76 @@
 import os
 import streamlit as st
-from agents import run_nexusfind_engine
+from crewai import Crew, Process, Task
+from agents import create_agents
 
 # Page Configuration
 st.set_page_config(
-    page_title="NexusFind AI",
+    page_title="NexusFind AI - Multi-Agent Search Engine",
     page_icon="🔍",
     layout="wide"
 )
 
-# Header Section
+# Title & Description
 st.title("🔍 NexusFind AI")
-st.subheader("Autonomous Multi-Agent Deep Search & Answer Engine")
-st.caption("Powered by Groq & CrewAI | Real-time Search with Inline Citations")
+st.caption("Powered by Google Gemini & CrewAI Multi-Agent Architecture")
 
-# Sidebar Configuration
-with st.sidebar:
-    st.header("⚙️ Configuration")
-    
-    # Check for Groq API Key from Streamlit Secrets or Manual Input
-    api_key_env = st.secrets.get("GROQ_API_KEY", "") or os.environ.get("GROQ_API_KEY", "")
-    
-    if not api_key_env:
-        user_groq_key = st.text_input("Enter Groq API Key:", type="password")
-        if user_groq_key:
-            os.environ["GROQ_API_KEY"] = user_groq_key
-            st.success("API Key set successfully!")
+# Streamlit Secrets / Environment Variable Setup
+if "GEMINI_API_KEY" in st.secrets:
+    os.environ["GEMINI_API_KEY"] = st.secrets["GEMINI_API_KEY"]
+
+# API Key Validation
+if not os.environ.get("GEMINI_API_KEY"):
+    st.error("🔑 GEMINI_API_KEY nahi mili! Kripya Streamlit Secrets mein API key add karein.")
+    st.stop()
+
+# User Input
+user_query = st.text_input(
+    "Aap kya search karna chahte hain?",
+    placeholder="e.g., Impact of Agentic AI workflows on enterprise SaaS software..."
+)
+
+if st.button("Run Research 🚀", type="primary"):
+    if not user_query.strip():
+        st.warning("Kripya search query enter karein.")
     else:
-        os.environ["GROQ_API_KEY"] = api_key_env
-        st.success("Groq API Key detected from Environment/Secrets.")
+        try:
+            with st.spinner("Multi-Agent Engine runs ho raha hai... (Planner → Retriever → Synthesizer)"):
+                # Initialize Gemini Agents
+                planner, retriever, synthesizer = create_agents()
 
-    st.markdown("---")
-    st.markdown("### 🤖 Agents at Work")
-    st.markdown("1. **Search Planner:** Expands query into search terms.")
-    st.markdown("2. **Web Retriever:** Fetches real-time web snippets.")
-    st.markdown("3. **Synthesizer:** Writes structured response with citations.")
+                # Define Tasks
+                task_plan = Task(
+                    description=f"Analyze the user query: '{user_query}'. Break it down into clear, high-intent web search strategies.",
+                    expected_output="A structured search plan with target keywords.",
+                    agent=planner
+                )
 
-# Main Query Section
-user_query = st.text_input("What would you like to search for?", placeholder="e.g., Latest features in Groq Llama 3 models")
+                task_retrieve = Task(
+                    description="Execute the planned web search strategy using DuckDuckGo. Gather live data, facts, statistics, and source URLs.",
+                    expected_output="Raw collected web data with exact URLs.",
+                    agent=retriever
+                )
 
-if st.button("Search & Analyze", type="primary"):
-    if not os.environ.get("GROQ_API_KEY"):
-        st.error("Please provide a valid Groq API Key in the sidebar or Streamlit Secrets!")
-    elif not user_query.strip():
-        st.warning("Please enter a valid search query.")
-    else:
-        with st.spinner("🤖 Multi-agents are searching, reading, and synthesizing facts..."):
-            try:
-                # Run the backend agent engine
-                response = run_nexusfind_engine(user_query)
-                
-                st.markdown("---")
-                st.markdown("### 📝 Answer & Verified Sources")
-                st.markdown(response)
-                
-            except Exception as e:
-                st.error(f"An error occurred while running agents: {str(e)}")
+                task_synthesize = Task(
+                    description="Synthesize the collected data into a clean, structured report. Include inline bracketed citations like [1], [2] and list clickable source URLs at the end under '### Sources'.",
+                    expected_output="A polished Markdown report with inline citations and a sources list.",
+                    agent=synthesizer
+                )
+
+                # Assemble Crew
+                nexus_crew = Crew(
+                    agents=[planner, retriever, synthesizer],
+                    tasks=[task_plan, task_retrieve, task_synthesize],
+                    process=Process.sequential,
+                    verbose=True
+                )
+
+                # Execute
+                result = nexus_crew.kickoff()
+
+            st.success("Research Complete!")
+            st.markdown("### 📊 Research Report")
+            st.markdown(str(result))
+
+        except Exception as e:
+            st.error(f"An error occurred while running agents: {str(e)}")
