@@ -1,15 +1,17 @@
 import os
-from crewai import Agent, Crew, Process, Task
+from crewai import Agent, Crew, Process, Task, LLM
 from crewai.tools import tool
 from duckduckgo_search import DDGS
-from langchain_groq import ChatGroq
 
-# Groq LLM Engine setup (Llama-3.3-70b-versatile fast aur smart hai)
-llm = ChatGroq(
-    temperature=0.2,
-    model_name="llama-3.3-70b-versatile",
-    groq_api_key=os.environ.get("GROQ_API_KEY")
-)
+# CrewAI Native LLM Setup for Groq
+def get_groq_llm():
+    api_key = os.environ.get("GROQ_API_KEY")
+    return LLM(
+        model="groq/llama-3.3-70b-versatile",
+        api_key=api_key,
+        temperature=0.2
+    )
+
 # -------------------------------------------------------------------
 # Custom Search Tool
 # -------------------------------------------------------------------
@@ -35,115 +37,72 @@ def web_search_tool(query: str) -> str:
     except Exception as e:
         return f"Error executing web search: {str(e)}"
 
-
 # -------------------------------------------------------------------
-# Agents Definition
-# -------------------------------------------------------------------
-
-# Agent 1: Search Planner
-search_planner = Agent(
-    role="Search Strategy Specialist",
-    goal="Deconstruct complex user queries into 2 to 3 distinct, targeted search phrases.",
-    backstory=(
-        "You are an expert at information retrieval strategy. Your job is to analyze user questions "
-        "and generate optimal, concise search queries that cover all key facets of the user's prompt."
-    ),
-    llm=llm,
-    verbose=True,
-    allow_delegation=False,
-)
-
-# Agent 2: Web Retriever
-web_retriever = Agent(
-    role="Information Verification Specialist",
-    goal="Execute search queries using the web search tool and extract accurate factual snippets with source URLs.",
-    backstory=(
-        "You are a meticulous fact-checker. You query search engines, extract relevant textual snippets, "
-        "and preserve metadata (titles and URLs) while discarding irrelevant fluff or duplicate links."
-    ),
-    tools=[web_search_tool],
-    llm=llm,
-    verbose=True,
-    allow_delegation=False,
-)
-
-# Agent 3: Synthesizer & Citer
-synthesizer = Agent(
-    role="Lead Technical Writer & Editor",
-    goal="Synthesize extracted facts into a structured, clear answer with inline numeric citations and clickable reference links.",
-    backstory=(
-        "You are a scientific writer who values strict accuracy. You combine extracted snippets into a well-written "
-        "Markdown response. EVERY factual claim MUST have an inline bracketed citation (e.g., [1], [2]). You NEVER "
-        "hallucinate facts or fabricate external URLs."
-    ),
-    llm=llm,
-    verbose=True,
-    allow_delegation=False,
-)
-
-
-# -------------------------------------------------------------------
-# NexusFind Engine Function
+# Engine Function
 # -------------------------------------------------------------------
 def run_nexusfind_engine(user_query: str) -> str:
-    """Executes the NexusFind AI multi-agent pipeline for a given user query."""
+    # Get Groq LLM instance
+    llm = get_groq_llm()
 
-    # Task 1: Generate Search Strategy
+    # Agent 1: Search Planner
+    search_planner = Agent(
+        role="Search Strategy Specialist",
+        goal="Deconstruct complex user queries into 2 to 3 distinct, targeted search phrases.",
+        backstory="You are an expert at information retrieval strategy. Generate optimal search queries.",
+        llm=llm,
+        verbose=True,
+        allow_delegation=False,
+    )
+
+    # Agent 2: Web Retriever
+    web_retriever = Agent(
+        role="Information Verification Specialist",
+        goal="Execute search queries using web search tool and extract accurate snippets.",
+        backstory="You are a factual verifier extracting textual snippets with metadata.",
+        tools=[web_search_tool],
+        llm=llm,
+        verbose=True,
+        allow_delegation=False,
+    )
+
+    # Agent 3: Synthesizer & Citer
+    synthesizer = Agent(
+        role="Lead Technical Writer & Editor",
+        goal="Synthesize extracted facts into a clear answer with inline bracketed citations [1], [2].",
+        backstory="You synthesize facts into clean Markdown. Always include inline numeric citations.",
+        llm=llm,
+        verbose=True,
+        allow_delegation=False,
+    )
+
+    # Tasks
     plan_task = Task(
-        description=(
-            f"Analyze the user query: '{user_query}'.\n"
-            "Generate 2 to 3 specific, distinct search queries that will retrieve the most accurate "
-            "and relevant real-time information. Return only the list of search phrases."
-        ),
-        expected_output="A list of 2-3 search query strings.",
+        description=f"Analyze query: '{user_query}'. Generate 2-3 specific search queries.",
+        expected_output="List of search queries.",
         agent=search_planner,
     )
 
-    # Task 2: Fetch Web Snippets
     retrieve_task = Task(
-        description=(
-            "Take the search queries generated by the Search Planner and execute searches using the DuckDuckGo tool.\n"
-            "Collect and organize raw factual snippets along with their source titles and URLs."
-        ),
-        expected_output="A structured compilation of web search snippets paired with source titles and URLs.",
+        description="Search DuckDuckGo using generated queries and collect snippets with URLs.",
+        expected_output="Structured web search snippets.",
         agent=web_retriever,
     )
 
-    # Task 3: Synthesize Final Answer with Citations
     synthesis_task = Task(
         description=(
-            f"Synthesize the retrieved web information into a complete, factual answer for the user query: '{user_query}'.\n\n"
-            "STRICT RULES:\n"
-            "1. Format the output in clean Markdown (headings, bullet points, concise paragraphs).\n"
-            "2. Add inline numeric citations directly after facts (e.g., 'CrewAI enables multi-agent workflows [1].').\n"
-            "3. At the end, include a '### Sources' section listing all cited references with clickable Markdown links:\n"
-            "   - [1] [Page Title](URL)\n"
-            "   - [2] [Page Title](URL)\n"
-            "4. Do NOT include any unverified facts or non-existent links."
+            f"Synthesize web information for query: '{user_query}'.\n"
+            "Include inline numeric citations like [1], [2] and a '### Sources' section at the end."
         ),
-        expected_output="A well-formatted Markdown response with inline numeric citations and a final Sources section.",
+        expected_output="Markdown response with citations and Sources list.",
         agent=synthesizer,
     )
 
-    # Assemble the Crew
-    nexus_crew = Crew(
+    crew = Crew(
         agents=[search_planner, web_retriever, synthesizer],
         tasks=[plan_task, retrieve_task, synthesis_task],
         process=Process.sequential,
         verbose=True,
     )
 
-    # Execute
-    result = nexus_crew.kickoff()
+    result = crew.kickoff()
     return str(result)
-
-
-# -------------------------------------------------------------------
-# Execution Entry Point (Testing in CLI)
-# -------------------------------------------------------------------
-if __name__ == "__main__":
-    prompt = "What are the key updates in AI multi-agent frameworks in 2026?"
-    print(f"\n--- Running NexusFind AI for query: '{prompt}' ---\n")
-    final_output = run_nexusfind_engine(prompt)
-    print("\n================ FINAL RESPONSE ================\n")
-    print(final_output)
