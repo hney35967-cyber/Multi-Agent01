@@ -4,10 +4,13 @@ from crewai.tools import tool
 from duckduckgo_search import DDGS
 from crewai import LLM
 
-def get_groq_llm():
-    api_key = os.environ.get("GROQ_API_KEY")
+
+def get_gemini_llm():
+    # Streamlit Secrets ya Environment Variable se GEMINI_API_KEY retrieve karein
+    api_key = os.environ.get("GEMINI_API_KEY")
+    
     return LLM(
-        model="openai/gpt-oss-20b",
+        model="gemini/gemini-1.5-flash",  # Gemini ka fast & stable model
         api_key=api_key,
         temperature=0.2
     )
